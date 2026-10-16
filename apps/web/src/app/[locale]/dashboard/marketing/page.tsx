@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BackToReportsLink } from "../_components/back-to-reports-link";
 
 /**
@@ -30,6 +31,7 @@ type Channel = {
 
 export default function MarketingHubPage() {
   const t = useTranslations("dash_marketing_page");
+  const tStory = useTranslations("dash_story_composer");
   // Kanalen. Get-Filly mailt geen gasten meer, dus mail staat hier niet meer.
   const channels: Channel[] = [
     {
@@ -65,6 +67,12 @@ export default function MarketingHubPage() {
         title={t("title")}
         subtitle={t("subtitle")}
       />
+
+      <div style={{ marginBottom: "var(--space-5)" }}>
+        <Link href="/dashboard/marketing/story">
+          <Button variant="primary">{tStory("title")}</Button>
+        </Link>
+      </div>
 
       {/* Status-banner, bovenaan om direct context te geven. */}
       <div

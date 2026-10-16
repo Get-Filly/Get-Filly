@@ -55,11 +55,12 @@ const BASIS_SCOPES = [
 // aan toegevoegd is, kent de dialoog de naam niet. Dat is een actie in
 // het App Dashboard.
 //
-// Daarom een vlag en geen vaste waarde: zonder de env-var werkt
-// verbinden gewoon (en blijft verwijderen bij Instagram achterwege),
-// met de var gaat de scope mee. Zet `META_REQUEST_IG_DELETE_SCOPE=true`
-// in de web-env zodra het dashboard de permissie accepteert; dan is dit
-// één env-wijziging en geen deploy.
+// Op 2026-10-08 stond deze scope standaard aan omdat het Dashboard de
+// permissie zou hebben, maar de inlogdialoog weigerde 'm nog steeds
+// ("Invalid Scopes: instagram_manage_contents") en dat blokkeerde verbinden
+// voor iedereen. Daarom weer standaard UIT. Zet
+// `META_REQUEST_IG_DELETE_SCOPE=true` pas aan nadat een test-verbinding met
+// precies deze scope in de dialoog is gelukt.
 const IG_DELETE_SCOPE = "instagram_manage_contents";
 
 export function vraagtIgDeleteScope(): boolean {
@@ -108,6 +109,11 @@ export function buildAuthorizeUrl({
     state,
     response_type: "code",
     scope: META_SCOPES.join(","),
+    // Verbreken wist alleen onze eigen rij, niet de toestemming bij Meta.
+    // Vinkt iemand in de dialoog een permissie uit, dan vraagt Meta daar
+    // bij de volgende keer NIET meer naar, tenzij we rerequest meesturen.
+    // Zo levert elke disconnect + connect weer alle scopes op.
+    auth_type: "rerequest",
   });
   return `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth?${params.toString()}`;
 }

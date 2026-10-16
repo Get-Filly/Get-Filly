@@ -879,12 +879,18 @@ export default function CampagnesPage() {
         .map((r) => r.retract)
         .filter((r): r is CampaignRetractReport => !!r);
       if (reports.length === 0) return undefined;
+      // Volgorde van zwaarte: failed > unavailable > deleted > skipped.
+      // 'unavailable' (verwijderen kan niet met deze koppeling) mag NIET
+      // naar 'skipped' vallen: dan meldt de popup dat er niets live stond
+      // terwijl de Instagram-post gewoon blijft staan.
       const roll = (k: "facebook" | "instagram") =>
         reports.some((r) => r[k] === "failed")
           ? ("failed" as const)
-          : reports.some((r) => r[k] === "deleted")
-            ? ("deleted" as const)
-            : ("skipped" as const);
+          : reports.some((r) => r[k] === "unavailable")
+            ? ("unavailable" as const)
+            : reports.some((r) => r[k] === "deleted")
+              ? ("deleted" as const)
+              : ("skipped" as const);
       return {
         facebook: roll("facebook"),
         instagram: roll("instagram"),

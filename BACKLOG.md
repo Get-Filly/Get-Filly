@@ -79,8 +79,29 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
       een event. Daarvoor komt een melding; na akkoord van de eigenaar voert Filly de wijziging
       zelf door. Nu schrijft de app al omschrijving, tijden, speciale dagen en reviews; naam,
       telefoon, website en categorie zijn nog alleen lezen. *(Claude)*
-- [ ] **Stories plaatsen op Instagram en Facebook.** Zie "Reels en Stories" in P2. *(Claude;
-      compagnon controleert het App Dashboard.)*
+- [ ] **Stories (Instagram + Facebook).** Gebouwd en gepusht (10-2026): foto-story met tekst in het beeld
+      (`/dashboard/marketing/story`, `MetaService.publishStory`) en Filly-tekstvoorstellen
+      (`GET /suggestions/story-texts`, geleide flow linkt erheen). Nog nooit op een echt account getest.
+      Opvolging, in volgorde:
+  - [ ] **Testen op een Meta-testaccount in dev-modus.** Controleert of Meta de Stories-aanroep echt
+        accepteert (de docs spreken zichzelf op één punt tegen). *(Floris test, Claude kijkt mee)*
+  - [ ] **Stories-stap in de demovideo en justificatie voor de Meta App Review.** De scope-teksten in
+        `docs/setup/oauth-verificatie.md` noemen Stories al; de video nog niet. *(Floris)*
+  - [ ] **Compagnon controleert in het App Dashboard** dat `instagram_content_publish` en
+        `pages_manage_posts` voor Stories in de use case zitten. *(compagnon)*
+  - [ ] **Story als volwaardig kanaal** in voorstellen en campagnes, met inplannen en auto-publiceren
+        (nu plaatst de eigenaar zelf). Aanbevolen aanpak: de tekst bij goedkeuren in de browser in het beeld
+        zetten en opslaan; alternatief is server-side renderen met een meegeleverd lettertype. Raakt zo'n
+        40 plekken (platform-waarde, planning, rapportages, DB-classificatie, chat-kaarten). *(Claude)*
+  - [ ] **Filly stelt ook de foto voor** (nu alleen de tekst). *(Claude)*
+  - [ ] **Video-stories.** Instagram: `video_url` met `media_type=STORIES` en status-polling. Facebook:
+        3-fasen-upload via `/{page}/video_stories`. *(Claude)*
+  - [ ] **Story terugtrekken.** Valt onder dezelfde delete-permissie als posts
+        (`instagram_manage_contents`, zie P0 Meta); `retract` kent nu alleen post-id's. *(Claude)*
+  - [ ] **Story-insights** (bereik, antwoorden) via `instagram_manage_insights`: aparte App Review. De kaart
+        "Stories" op de Instagram-pagina is nog mockdata. *(Claude)*
+  - [ ] **Betaalde promotie via Meta** (`ads_management`): eigen flow en review, zie "Betaalde
+        advertenties" in P2. *(Floris + Claude)*
 - [ ] **Duidelijk aangeven dat je altijd ook een event of post kunt plaatsen via het Google
       Bedrijfsprofiel** (in de campagneflow en in Filly's voorstellen). Besluit 29-9: de
       GBP-event-posts komen erbij. *(Claude)*
@@ -127,11 +148,15 @@ bepaald. Details van sommige punten staan verderop onder P1/P2 en zijn daar niet
 Zonder deze punten werken Instagram en Facebook alleen voor mensen met een rol in
 de Meta-app.
 
-- [ ] 🔴 **`instagram_manage_contents` beschikbaar maken in het App Dashboard.**
-      Meta weigert de scope ("Invalid Scopes", 28-09). Een permissie hangt aan een
-      **use case**: Dashboard → de use case → permissies toevoegen. Geen
-      codewijziging. **Daarna:** `META_REQUEST_IG_DELETE_SCOPE=true` in de
-      web-env van Vercel, dan vraagt de code de scope weer aan zonder deploy.
+- [ ] **Instagram-post automatisch verwijderen: geblokkeerd door Meta (9-10).** De permissie
+      `instagram_manage_contents` staat niet tussen de beschikbare permissies van de app en de
+      inlogdialoog weigert de scope ("Invalid Scopes"). Dit heeft nooit gewerkt: tot 25-09 ging de
+      app ervan uit dat het niet kon, en sinds 28-09 staat de scope achter `META_REQUEST_IG_DELETE_SCOPE`
+      (standaard uit; zet die NIET aan zolang Meta de scope weigert, dan kan niemand meer verbinden).
+      **Werkwijze nu:** Facebook verwijdert automatisch, bij Instagram toont het stopscherm een directe
+      link en haalt de eigenaar de post zelf weg. Laat Instagram-verwijderen weg uit de Meta-demovideo.
+      Mogelijk later: kijken of een andere Instagram-use case de permissie wel biedt, of een vraag aan
+      Meta Developer Support. *(compagnon/Floris, laag)*
 - [ ] **Meta App Review aanvragen** voor externe klanten (in Development Mode
       werkt alles alleen voor accounts met een rol in de app).
 - [ ] **Bestaande Meta-koppelingen van vóór 25 september opnieuw leggen.** Ze
@@ -346,7 +371,7 @@ de Meta-app.
 - [ ] Events vervolg: schoolvakanties per regio in `timing-factors.ts`, handmatige eigen
       events (kermis, braderie), feeds (Eredivisie, F1, beurzen, gemeenten), licentie
       evenementen.nl (databankenrecht), en waar de interne eventsdatabase leeft.
-- [ ] **Publiceren naar Reels en Stories** (IG eerst, dan FB). *(Claude; compagnon
+- [ ] **Publiceren naar Reels** (IG eerst, dan FB). Stories staan apart onder "Focus van Floris". *(Claude; compagnon
       checkt het App Dashboard.)*
 - [ ] TikTok: video-upload en filter in de mediabibliotheek, TikTok Insights.
 - [ ] Google Bedrijfsprofiel: naam, telefoon, website en categorie bewerkbaar maken.

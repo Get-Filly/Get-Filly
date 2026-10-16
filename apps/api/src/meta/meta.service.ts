@@ -271,6 +271,13 @@ export class MetaService {
 
   /** Verwijdert de Meta-koppeling van dit restaurant (data-deletion). */
   async disconnect(businessId: string): Promise<{ ok: true }> {
+    // Eerst de toestemming bij Meta intrekken. Zonder dit blijven de
+    // permissies bij Meta staan en slaat Meta het toestemmingsscherm bij
+    // het opnieuw verbinden over (alles is al verleend). Dat scherm moet
+    // elke keer terugkomen: de App Review-demovideo laat het zien, en de
+    // eigenaar ziet zo opnieuw wat hij toestaat.
+    await this.revokeAtMeta(businessId);
+
     const { error } = await this.supabase.client
       .from('integration_credentials')
       .delete()
@@ -284,6 +291,51 @@ export class MetaService {
       throw new InternalServerErrorException('Koppeling verwijderen mislukt');
     }
     return { ok: true };
+  }
+
+  /**
+   * Trekt de app-toestemming van deze Meta-gebruiker in (DELETE /me/permissions),
+   * zodat de volgende verbinding weer het volledige toestemmingsscherm toont.
+   * Best-effort: lukt het niet, dan verbreken we onze eigen koppeling gewoon.
+   *
+   * Eén Meta-gebruiker kan meerdere zaken hebben gekoppeld (één token per
+   * zaak, maar dezelfde toestemming). Trekken we die in terwijl een andere
+   * zaak dezelfde Meta-gebruiker gebruikt, dan werkt die andere koppeling
+   * stil niet meer. Dus alleen intrekken als geen andere zaak 'm gebruikt.
+   */
+  private async revokeAtMeta(businessId: string): Promise<void> {
+    try {
+      const { token, meta } = await this.loadCredential(businessId);
+      const metaUserId = (meta.meta_user_id as string | undefined) ?? null;
+      if (metaUserId) {
+        const { data: others } = await this.admin.client
+          .from('integration_credentials')
+          .select('business_id')
+          .eq('provider', PROVIDER)
+          .eq('meta->>meta_user_id', metaUserId)
+          .neq('business_id', businessId)
+          .limit(1);
+        if (others && others.length > 0) {
+          this.logger.log(
+            `Meta-toestemming niet ingetrokken: ander restaurant gebruikt dezelfde Meta-gebruiker.`,
+          );
+          return;
+        }
+      }
+      const res = await this.fetchWithTimeout(
+        `https://graph.facebook.com/${this.graphVersion()}/me/permissions?access_token=${encodeURIComponent(token)}`,
+        { method: 'DELETE' },
+      );
+      if (!res.ok) {
+        this.logger.warn(
+          `Meta-toestemming intrekken mislukt (${res.status}): ${(await res.text()).slice(0, 200)}`,
+        );
+      }
+    } catch (err) {
+      // Geen koppeling meer, token verlopen of Meta onbereikbaar: niet erg,
+      // het verbreken zelf mag hier niet aan blijven hangen.
+      this.logger.warn(`Meta-toestemming intrekken overgeslagen: ${String(err)}`);
+    }
   }
 
   /**
@@ -651,6 +703,169 @@ export class MetaService {
             `Instagram-publicatie mislukt: ${this.describeMetaError(err)}`,
           );
         }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Slaat een kant-en-klaar story-beeld (9:16 JPEG, tekst al in het beeld
+   * gerenderd door de browser) op in de assets-bucket en geeft de publieke
+   * URL terug waarvan Meta het beeld ophaalt. Bewust los van de
+   * foto-bibliotheek: geen cap van 20, geen Vision-tagging, en een
+   * story-beeld mag niet hergebruikt zijn in een gewone post.
+   */
+  async uploadStoryImage(
+    businessId: string,
+    file: { buffer: Buffer; mimeType: string },
+  ): Promise<{ url: string }> {
+    if (file.mimeType !== 'image/jpeg') {
+      // Instagram accepteert voor stories alleen JPEG.
+      throw new BadRequestException('Een story-beeld moet een JPEG zijn.');
+    }
+    if (file.buffer.length > 8 * 1024 * 1024) {
+      throw new BadRequestException('Het story-beeld is te groot (max 8MB).');
+    }
+    const path = `${businessId}/stories/${randomUUID()}.jpg`;
+    const { error } = await this.supabase.client.storage
+      .from('restaurant-assets')
+      .upload(path, file.buffer, { contentType: 'image/jpeg', upsert: false });
+    if (error) {
+      throw new InternalServerErrorException(
+        `Kon het story-beeld niet opslaan: ${error.message}`,
+      );
+    }
+    const { data } = this.supabase.client.storage
+      .from('restaurant-assets')
+      .getPublicUrl(path);
+    return { url: data.publicUrl };
+  }
+
+  /**
+   * Plaatst een foto-story op de Facebook-pagina en/of het Instagram-account.
+   * Stories hebben geen caption en (via de API) geen link-sticker: alle tekst
+   * zit in het beeld. Fail-soft per kanaal, net als publish().
+   *
+   *  - Instagram: container met media_type=STORIES → media_publish.
+   *  - Facebook: foto ongepubliceerd uploaden (published=false) →
+   *    POST /{page}/photo_stories. Een foto die al in een gewone post zit
+   *    mag niet als story, dus dit is altijd een vers foto-object.
+   */
+  async publishStory(
+    businessId: string,
+    opts: { imageUrl: string; toFacebook: boolean; toInstagram: boolean },
+    useAdmin = false,
+  ): Promise<{
+    facebook?: { id: string; photoId?: string | null };
+    instagram?: { id: string };
+    errors: string[];
+  }> {
+    if (!opts.toFacebook && !opts.toInstagram) {
+      throw new BadRequestException('Kies Instagram en/of Facebook');
+    }
+    const { token, meta } = await this.loadCredential(businessId, useAdmin);
+    const pageId = meta.page_id as string | undefined;
+    const igUserId = (meta.ig_user_id as string | null | undefined) ?? null;
+    if (!pageId) {
+      throw new BadRequestException('Kies eerst een Facebook-pagina');
+    }
+    const accounts = await this.fetchAccounts(token);
+    const page = accounts.find((a) => a.id === pageId);
+    if (!page) {
+      throw new BadRequestException(
+        'Gekozen pagina niet meer beschikbaar; kies opnieuw',
+      );
+    }
+    const pageToken = page.access_token;
+    const v = this.graphVersion();
+    const result: {
+      facebook?: { id: string; photoId?: string | null };
+      instagram?: { id: string };
+      errors: string[];
+    } = { errors: [] };
+
+    if (opts.toInstagram) {
+      if (!igUserId) {
+        result.errors.push('Geen Instagram-account gekoppeld aan deze pagina');
+      } else {
+        try {
+          const createRes = await this.fetchWithTimeout(
+            `https://graph.facebook.com/${v}/${igUserId}/media`,
+            {
+              method: 'POST',
+              body: new URLSearchParams({
+                media_type: 'STORIES',
+                image_url: opts.imageUrl,
+                access_token: pageToken,
+              }),
+            },
+          );
+          const createJson = (await createRes.json()) as { id?: string };
+          if (!createRes.ok) throw new Error(JSON.stringify(createJson));
+          const pubRes = await this.fetchWithTimeout(
+            `https://graph.facebook.com/${v}/${igUserId}/media_publish`,
+            {
+              method: 'POST',
+              body: new URLSearchParams({
+                creation_id: createJson.id ?? '',
+                access_token: pageToken,
+              }),
+            },
+          );
+          const pubJson = (await pubRes.json()) as { id?: string };
+          if (!pubRes.ok) throw new Error(JSON.stringify(pubJson));
+          result.instagram = { id: pubJson.id ?? '' };
+        } catch (err) {
+          this.logger.error(`IG-story faalde: ${String(err)}`);
+          result.errors.push(
+            `Instagram-story mislukt: ${this.describeMetaError(err)}`,
+          );
+        }
+      }
+    }
+
+    if (opts.toFacebook) {
+      try {
+        const photoRes = await this.fetchWithTimeout(
+          `https://graph.facebook.com/${v}/${pageId}/photos`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({
+              url: opts.imageUrl,
+              published: 'false',
+              access_token: pageToken,
+            }),
+          },
+        );
+        const photoJson = (await photoRes.json()) as { id?: string };
+        if (!photoRes.ok || !photoJson.id) {
+          throw new Error(JSON.stringify(photoJson));
+        }
+        const storyRes = await this.fetchWithTimeout(
+          `https://graph.facebook.com/${v}/${pageId}/photo_stories`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({
+              photo_id: photoJson.id,
+              access_token: pageToken,
+            }),
+          },
+        );
+        const storyJson = (await storyRes.json()) as {
+          post_id?: string;
+          success?: boolean;
+        };
+        if (!storyRes.ok) throw new Error(JSON.stringify(storyJson));
+        result.facebook = {
+          id: storyJson.post_id ?? '',
+          photoId: photoJson.id,
+        };
+      } catch (err) {
+        this.logger.error(`FB-story faalde: ${String(err)}`);
+        result.errors.push(
+          `Facebook-story mislukt: ${this.describeMetaError(err)}`,
+        );
       }
     }
 

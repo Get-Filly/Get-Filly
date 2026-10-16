@@ -161,6 +161,43 @@ export async function metaPublish(input: {
   return data;
 }
 
+export type MetaStoryResult = {
+  facebook?: { id: string };
+  instagram?: { id: string };
+  errors: string[];
+};
+
+/** Uploadt het gerenderde story-beeld (JPEG) en geeft de publieke URL terug. */
+export async function metaUploadStoryImage(blob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", blob, "story.jpg");
+  const res = await authedFetch(`${API_URL}/integrations/meta/story-image`, {
+    method: "POST",
+    body: formData,
+  });
+  const data = (await res.json()) as { url?: string; message?: string };
+  if (!res.ok || !data.url) {
+    throw new Error(data?.message ?? `HTTP ${res.status}`);
+  }
+  return data.url;
+}
+
+/** Plaatst een foto-story op Instagram en/of Facebook. */
+export async function metaPublishStory(input: {
+  imageUrl: string;
+  toFacebook: boolean;
+  toInstagram: boolean;
+}): Promise<MetaStoryResult> {
+  const res = await authedFetch(`${API_URL}/integrations/meta/story`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = (await res.json()) as MetaStoryResult & { message?: string };
+  if (!res.ok) throw new Error(data?.message ?? `HTTP ${res.status}`);
+  return data;
+}
+
 /** Trekt de Meta-koppeling van het actieve restaurant in (DELETE). */
 export async function metaDisconnect(): Promise<void> {
   const res = await authedFetch(`${API_URL}/integrations/meta`, {
@@ -1831,6 +1868,18 @@ export async function fetchChannelLoad(
     throw new Error(await readErrorMessage(res, "Kanaalbelasting laden mislukt"));
   }
   return res.json();
+}
+
+/** Korte tekst-voorstellen van Filly voor in een story-beeld. */
+export async function fetchStoryTexts(date?: string): Promise<string[]> {
+  const q = date ? `?date=${encodeURIComponent(date)}` : "";
+  const res = await authedFetch(`${API_URL}/suggestions/story-texts${q}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Tekstvoorstellen laden mislukt"));
+  }
+  return ((await res.json()) as { texts: string[] }).texts;
 }
 
 export async function generateSuggestionsForDates(
