@@ -91,7 +91,12 @@ h2.section-title {
 }
 /* max-width verbreed van 560 → 680px zodat de langere hero-subtitel
    netjes op 3 regels uitkomt i.p.v. 4. */
-.hero .section-subtitle { margin: 20px auto 0; max-width: 680px; }
+.hero .section-subtitle {
+  margin: 20px auto 0; max-width: 920px;
+  /* Op desktop twee regels onder de titel (Floris 2026-10-16); balance
+     verdeelt de regels gelijk, ook op smallere schermen. */
+  text-wrap: balance;
+}
 
 .hero-cta { display: inline-flex; gap: 10px; margin-top: 36px; }
 
