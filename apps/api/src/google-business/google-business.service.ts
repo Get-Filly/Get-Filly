@@ -424,6 +424,9 @@ export class GoogleBusinessService {
   /** Koppelingsstatus (zonder de tokens) voor de UI. */
   async status(businessId: string): Promise<{
     connected: boolean;
+    // true = Google heeft de toegang ingetrokken/verlopen verklaard (zie
+    // markExpired); de eigenaar moet opnieuw verbinden.
+    needsReconnect?: boolean;
     scopes?: string[];
     expiresAt?: string | null;
     updatedAt?: string;
@@ -436,8 +439,14 @@ export class GoogleBusinessService {
       .maybeSingle();
     if (error) throw new InternalServerErrorException('Status ophalen mislukt');
     if (!data) return { connected: false };
+    // markExpired zet expires_at op de epoch (1970); een gewone verlopen
+    // access-token wordt automatisch ververst en heeft nooit die waarde.
+    const expiresAt = data.expires_at as string | null;
+    const needsReconnect =
+      !!expiresAt && new Date(expiresAt).getTime() === 0;
     return {
       connected: true,
+      needsReconnect,
       scopes: data.scopes as string[],
       expiresAt: data.expires_at as string | null,
       updatedAt: data.updated_at as string,
@@ -475,31 +484,7 @@ export class GoogleBusinessService {
     }
 
     if (!res.ok) {
-      const body = await res.text();
-      this.logger.warn(
-        `GBP accounts.list ${res.status}: ${body.slice(0, 500)}`,
-      );
-      // Quotum 0 (access-aanvraag nog niet goedgekeurd) komt terug als 429
-      // RESOURCE_EXHAUSTED ("Requests per minute" = 0), soms als 403. Beide →
-      // de nette "nog in aanvraag"-melding i.p.v. een generieke fout.
-      if (res.status === 429 || res.status === 403) {
-        throw new BadRequestException({
-          reason: 'api_not_approved',
-          message:
-            'Google Business Profile API-toegang is nog niet goedgekeurd ' +
-            'voor dit project (quotum 0). De koppeling werkt; profielen ' +
-            'ophalen kan zodra Google de access-aanvraag goedkeurt.',
-        });
-      }
-      if (res.status === 401) {
-        throw new BadRequestException({
-          reason: 'token_invalid',
-          message: 'Google weigerde de token. Verbind het profiel opnieuw.',
-        });
-      }
-      throw new ServiceUnavailableException(
-        `Google gaf een fout terug (${res.status}).`,
-      );
+      this.throwGoogleApiError(res.status, await res.text(), 'accounts.list');
     }
 
     const data = (await res.json()) as {
@@ -1083,6 +1068,22 @@ export class GoogleBusinessService {
     label: string,
   ): never {
     this.logger.warn(`GBP ${label} ${status}: ${bodyText.slice(0, 500)}`);
+    // Google's eigen foutmelding (error.message / error.status) meegeven,
+    // zodat een 403 door een uitgeschakelde API of ontbrekende rechten te
+    // onderscheiden is van een quotum-probleem.
+    let googleMessage: string | undefined;
+    try {
+      const parsed = JSON.parse(bodyText) as {
+        error?: { message?: string; status?: string };
+      };
+      googleMessage = [parsed.error?.status, parsed.error?.message]
+        .filter(Boolean)
+        .join(': ')
+        .slice(0, 300);
+    } catch {
+      /* geen JSON-body */
+    }
+    const detail = { googleStatus: status, googleMessage, call: label };
     // Quotum 0 (access-aanvraag / API nog niet ingeschakeld) => 429/403.
     if (status === 429 || status === 403) {
       throw new BadRequestException({
@@ -1091,17 +1092,20 @@ export class GoogleBusinessService {
           'Google Business Profile API-toegang is nog niet goedgekeurd of ' +
           'de Business Information API staat niet aan voor dit project. ' +
           'Dit werkt zodra dat geregeld is.',
+        ...detail,
       });
     }
     if (status === 401) {
       throw new BadRequestException({
         reason: 'token_invalid',
         message: 'Google weigerde de token. Verbind het profiel opnieuw.',
+        ...detail,
       });
     }
-    throw new ServiceUnavailableException(
-      `Google gaf een fout terug (${status}).`,
-    );
+    throw new ServiceUnavailableException({
+      message: `Google gaf een fout terug (${status}).`,
+      ...detail,
+    });
   }
 
   // Admin-client: werkt in zowel request- als achtergrond-context.

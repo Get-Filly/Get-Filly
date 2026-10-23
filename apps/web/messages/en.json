@@ -3315,6 +3315,7 @@
   "dash__components_google_connected_panel": {
     "title": "Google Business Profile",
     "notApproved": "✓ Connected. Fetching and managing your profile data will become available once Google approves the API access (under review).",
+    "needsReconnect": "Access to your Google account was revoked or has expired. Disconnect Google Business Profile and connect again to fetch data and apply changes.",
     "empty": "No managed Google Business Profiles found under this account.",
     "managedProfiles": "Managed profiles via your Google account:",
     "errors": {
