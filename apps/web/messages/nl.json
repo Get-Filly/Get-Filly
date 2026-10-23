@@ -3315,6 +3315,7 @@
   "dash__components_google_connected_panel": {
     "title": "Google Bedrijfsprofiel",
     "notApproved": "✓ Verbonden. Het ophalen en beheren van je profielgegevens komt beschikbaar zodra Google de API-toegang heeft goedgekeurd (in aanvraag).",
+    "needsReconnect": "De toegang tot je Google-account is ingetrokken of verlopen. Ontkoppel Google Bedrijfsprofiel en verbind opnieuw om gegevens op te halen en wijzigingen door te voeren.",
     "empty": "Geen beheerde Google-Bedrijfsprofielen gevonden onder dit account.",
     "managedProfiles": "Beheerde profielen via je Google-account:",
     "errors": {

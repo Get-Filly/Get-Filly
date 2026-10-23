@@ -295,6 +295,8 @@ export async function tiktokUpload(
 
 export type GoogleBusinessStatus = {
   connected: boolean;
+  /** true = Google-toegang ingetrokken/verlopen; opnieuw verbinden nodig. */
+  needsReconnect?: boolean;
   scopes?: string[];
   expiresAt?: string | null;
   updatedAt?: string;

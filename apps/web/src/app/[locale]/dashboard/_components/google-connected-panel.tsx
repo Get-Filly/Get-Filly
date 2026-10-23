@@ -22,6 +22,14 @@ import {
   type GoogleBusinessAccount,
 } from "@/lib/api";
 
+// Backend-reasons waarbij alleen opnieuw verbinden helpt.
+const RECONNECT_REASONS = [
+  "refresh_revoked",
+  "token_invalid",
+  "invalid_grant",
+  "no_refresh",
+];
+
 export function GoogleConnectedPanel() {
   const t = useTranslations("dash__components_google_connected_panel");
   const { active } = useRestaurant();
@@ -30,6 +38,7 @@ export function GoogleConnectedPanel() {
   const [connected, setConnected] = useState(false);
   const [accounts, setAccounts] = useState<GoogleBusinessAccount[]>([]);
   const [notApproved, setNotApproved] = useState(false);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +48,11 @@ export function GoogleConnectedPanel() {
         const status = await googleBusinessStatus();
         if (cancelled) return;
         setConnected(status.connected);
-        if (status.connected) {
+        // Ingetrokken/verlopen toegang: niet nog eens proberen, maar direct
+        // om opnieuw verbinden vragen (i.p.v. "Verbonden" te blijven tonen).
+        if (status.connected && status.needsReconnect) {
+          setNeedsReconnect(true);
+        } else if (status.connected) {
           try {
             const { accounts } = await googleBusinessProfile();
             if (!cancelled) setAccounts(accounts);
@@ -49,6 +62,7 @@ export function GoogleConnectedPanel() {
             // De backend geeft 'api_not_approved' tot Google de
             // API-toegang goedkeurt; dat is geen echte fout.
             if (reason === "api_not_approved") setNotApproved(true);
+            else if (RECONNECT_REASONS.includes(reason)) setNeedsReconnect(true);
             else setError(t("errors.fetchFailed"));
           }
         }
@@ -80,7 +94,11 @@ export function GoogleConnectedPanel() {
         {t("title")}
       </div>
 
-      {notApproved ? (
+      {needsReconnect ? (
+        <div style={{ fontSize: 12, color: "var(--red, #B42318)", lineHeight: 1.5 }}>
+          {t("needsReconnect")}
+        </div>
+      ) : notApproved ? (
         <div style={{ fontSize: 12, color: "var(--tl)", lineHeight: 1.5 }}>
           {t("notApproved")}
         </div>
