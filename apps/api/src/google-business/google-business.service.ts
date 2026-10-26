@@ -12,6 +12,11 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 // achtergrond-jobs ("namens de zaak") waar geen ingelogde user is.
 import { SupabaseService } from '../supabase/supabase.service';
 import { TokenCryptoService } from '../common/token-crypto.service';
+import {
+  businessHoursToGbpDays,
+  gbpDaysToBusinessHours,
+  type BusinessOpeningHours,
+} from './hours-mapping';
 
 // ============================================================
 // GoogleBusinessService, Google Bedrijfsprofiel OAuth (offline)
@@ -180,6 +185,10 @@ type CredRow = {
   expires_at: string | null;
   scopes: string[];
 };
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 @Injectable()
 export class GoogleBusinessService {
@@ -590,6 +599,10 @@ export class GoogleBusinessService {
     businessId: string,
     locationName: string,
     days: DayHours[],
+    // true = na een geslaagde Google-write ook businesses.opening_hours
+    // bijwerken (dashboard-pagina). false = de aanroep komt zelf uit die
+    // tabel (syncFromBusiness), dus niet terugschrijven.
+    mirrorToBusiness = true,
   ): Promise<{ ok: true; hours: DayHours[] }> {
     if (!/^locations\/[^/]+$/.test(locationName)) {
       throw new BadRequestException('Ongeldige locationName');
@@ -637,6 +650,9 @@ export class GoogleBusinessService {
     this.logger.log(
       `GBP openingstijden bijgewerkt (restaurant ${businessId}, ${locationName})`,
     );
+    if (mirrorToBusiness) {
+      await this.mirrorHoursToBusiness(businessId, days);
+    }
     return {
       ok: true,
       hours: normalizeRegularHours(data.regularHours?.periods),
@@ -1055,6 +1071,108 @@ export class GoogleBusinessService {
     if (error)
       throw new InternalServerErrorException('Koppeling verwijderen mislukt');
     return { ok: true };
+  }
+
+  /**
+   * Houdt Google gelijk aan Get-Filly: schrijft de openingstijden en/of
+   * sluitingsdata van de zaak naar het Google Bedrijfsprofiel. Get-Filly is
+   * de bron; dit is "best effort" (een Google-storing mag het opslaan in het
+   * dashboard nooit blokkeren), dus fouten worden gelogd en teruggegeven in
+   * plaats van gegooid. Bij meerdere locaties pakken we de eerste, net als
+   * de Google-pagina in het dashboard.
+   */
+  async syncFromBusiness(
+    businessId: string,
+    changes: {
+      openingHours?: BusinessOpeningHours | null;
+      closedDates?: string[] | null;
+    },
+  ): Promise<{ hours: string; specialDays: string }> {
+    const result = { hours: 'unchanged', specialDays: 'unchanged' };
+    const wantsHours = changes.openingHours !== undefined;
+    const wantsDays = changes.closedDates !== undefined;
+    if (!wantsHours && !wantsDays) return result;
+
+    const row = await this.loadRow(businessId);
+    if (!row) return { hours: 'not_connected', specialDays: 'not_connected' };
+    // Ingetrokken koppeling (zie markExpired): niet nog eens proberen.
+    if (row.expires_at && new Date(row.expires_at).getTime() === 0) {
+      return { hours: 'needs_reconnect', specialDays: 'needs_reconnect' };
+    }
+
+    let locationName: string;
+    try {
+      const locations = await this.listLocations(businessId);
+      if (locations.length === 0) {
+        return { hours: 'no_location', specialDays: 'no_location' };
+      }
+      locationName = locations[0].name;
+    } catch (err) {
+      this.logger.warn(
+        `GBP-sync: locatie ophalen faalde (${businessId}): ${errMsg(err)}`,
+      );
+      return { hours: 'failed', specialDays: 'failed' };
+    }
+
+    if (wantsHours) {
+      const days = businessHoursToGbpDays(changes.openingHours);
+      if (!days) {
+        // Onvolledige/ongeldige tijden: liever niets doen dan Google
+        // met een gok overschrijven.
+        result.hours = 'skipped_incomplete';
+      } else {
+        try {
+          await this.updateHours(businessId, locationName, days, false);
+          result.hours = 'synced';
+        } catch (err) {
+          this.logger.warn(
+            `GBP-sync: openingstijden faalden (${businessId}): ${errMsg(err)}`,
+          );
+          result.hours = 'failed';
+        }
+      }
+    }
+
+    if (wantsDays) {
+      // Google weigert datums in het verleden; alleen komende sluitingen.
+      const today = new Date().toISOString().slice(0, 10);
+      const upcoming = (changes.closedDates ?? []).filter((d) => d >= today);
+      try {
+        await this.updateSpecialDays(businessId, locationName, upcoming);
+        result.specialDays = 'synced';
+      } catch (err) {
+        this.logger.warn(
+          `GBP-sync: sluitingsdata faalden (${businessId}): ${errMsg(err)}`,
+        );
+        result.specialDays = 'failed';
+      }
+    }
+
+    this.logger.log(
+      `GBP-sync ${businessId}: hours=${result.hours} specialDays=${result.specialDays}`,
+    );
+    return result;
+  }
+
+  // Na een write vanaf de Google-pagina: Get-Filly's eigen openingstijden
+  // gelijktrekken, zodat /account en het dashboard hetzelfde tonen. Faalt
+  // dit, dan blijft de Google-write staan en loggen we alleen.
+  private async mirrorHoursToBusiness(
+    businessId: string,
+    days: DayHours[],
+  ): Promise<void> {
+    const { error } = await this.admin.client
+      .from('businesses')
+      .update({
+        opening_hours: gbpDaysToBusinessHours(days),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', businessId);
+    if (error) {
+      this.logger.warn(
+        `Openingstijden terugschrijven naar zaak faalde (${businessId}): ${error.message}`,
+      );
+    }
   }
 
   // ---------------- private ----------------

@@ -7,6 +7,23 @@ het hier bijgehouden wordt.
 
 ---
 
+## 🗓️ 2026-10-26 — Openingstijden en sluitingsdata blijven gelijk met Google Bedrijfsprofiel
+
+**Probleem.** Tijden die je op `/account` wijzigde kwamen nooit bij Google: de enige schrijf-route
+naar Google was de knop op de Google-pagina. Verbinden lukte dus wel, maar er werd niets aangeroepen.
+
+**Nu.** Get-Filly is de bron. Wijzig je `opening_hours` of `closed_dates` op `/account`, dan schrijft
+`GoogleBusinessService.syncFromBusiness` ze naar Google (alleen als ze echt veranderd zijn, best effort:
+een Google-storing blokkeert het opslaan nooit). Opslaan op de Google-pagina trekt `opening_hours` van de
+zaak ook gelijk. Mapping + tests: `google-business/hours-mapping.ts`.
+
+**Bewust zo.** Ontbrekende dag of ongeldige tijd: niet naar Google schrijven (geen gok die Google
+overschrijft). Verleden sluitingsdata gaan niet mee. Bij meerdere locaties telt de eerste. Split-tijden
+(lunch plus diner apart) worden één blok, zoals al in de Google-editor. Omschrijving blijft apart: dat is
+andere tekst dan de omschrijving in Get-Filly.
+
+---
+
 ## 🗓️ 2026-09-30 (later) — Filly-brein, rustige momenten v2, mail en WhatsApp weg (mig 0079 t/m 0084)
 
 **Rustige momenten model v2.** Alle drempels staan centraal in `busyness/quiet-params.ts`

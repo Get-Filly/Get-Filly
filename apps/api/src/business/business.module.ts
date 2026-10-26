@@ -9,6 +9,7 @@ import { GeocodingModule } from '../geocoding/geocoding.module';
 import { AiModule } from '../ai/ai.module';
 import { AuditLogModule } from '../common/audit-log.module';
 import { AnonymizationModule } from '../anonymization/anonymization.module';
+import { GoogleBusinessModule } from '../google-business/google-business.module';
 import { AuthGuard } from '../common/auth.guard';
 import { BusinessAccessGuard } from '../common/business-access.guard';
 
@@ -18,6 +19,8 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
 // AuditLogModule voor het loggen van mutaties (compliance + debugging).
 // AnonymizationModule voor de "right to be forgotten"-flow: laatste
 // vangnet voor afgeronde campagnes vóór ze door de cascade verdwijnen.
+// GoogleBusinessModule: openingstijden/sluitingsdata worden bij wijziging
+// automatisch naar het Google Bedrijfsprofiel gesynchroniseerd.
 @Module({
   imports: [
     SupabaseModule,
@@ -26,6 +29,7 @@ import { BusinessAccessGuard } from '../common/business-access.guard';
     AiModule,
     AuditLogModule,
     AnonymizationModule,
+    GoogleBusinessModule,
   ],
   controllers: [BusinessController],
   providers: [
