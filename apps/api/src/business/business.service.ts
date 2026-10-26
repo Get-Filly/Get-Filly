@@ -11,6 +11,8 @@ import { RequestSupabaseService } from '../supabase/request-supabase.service';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { WebsiteAnalyzerService } from '../ai/website-analyzer.service';
 import { AuditLogService } from '../common/audit-log.service';
+import { GoogleBusinessService } from '../google-business/google-business.service';
+import { sameJson } from '../google-business/hours-mapping';
 import {
   BusinessUpdateSchema,
   firstZodMessage,
@@ -29,6 +31,7 @@ export class BusinessService {
     private readonly geocoding: GeocodingService,
     private readonly websiteAnalyzer: WebsiteAnalyzerService,
     private readonly audit: AuditLogService,
+    private readonly google: GoogleBusinessService,
   ) {}
 
   async getById(businessId: string) {
@@ -134,6 +137,22 @@ export class BusinessService {
       }
     }
 
+    // 3) Voor de sync naar Google: wat stond er vóór deze wijziging? De
+    // account-pagina stuurt bij elke save het hele formulier mee, dus we
+    // synchroniseren alleen als openingstijden of sluitingsdata ECHT
+    // veranderen.
+    const touchesGoogleFields =
+      'opening_hours' in safe || 'closed_dates' in safe;
+    let before: { opening_hours: unknown; closed_dates: unknown } | null = null;
+    if (touchesGoogleFields) {
+      const { data: prev } = await this.supabase.client
+        .from('businesses')
+        .select('opening_hours, closed_dates')
+        .eq('id', businessId)
+        .maybeSingle();
+      before = prev ?? null;
+    }
+
     const { data, error } = await this.supabase.client
       .from('businesses')
       .update({ ...safe, updated_at: new Date().toISOString() })
@@ -155,6 +174,28 @@ export class BusinessService {
       entity_id: businessId,
       payload: { fields_changed: Object.keys(safe) },
     });
+
+    // 4) Google gelijktrekken (best effort, blokkeert het opslaan nooit).
+    if (touchesGoogleFields) {
+      const hoursChanged =
+        'opening_hours' in safe &&
+        !sameJson(before?.opening_hours, data.opening_hours);
+      const daysChanged =
+        'closed_dates' in safe &&
+        !sameJson(before?.closed_dates, data.closed_dates);
+      if (hoursChanged || daysChanged) {
+        try {
+          await this.google.syncFromBusiness(businessId, {
+            openingHours: hoursChanged ? data.opening_hours : undefined,
+            closedDates: daysChanged ? data.closed_dates : undefined,
+          });
+        } catch (err) {
+          this.logger.warn(
+            `Google-sync na opslaan faalde (${businessId}): ${(err as Error).message}`,
+          );
+        }
+      }
+    }
 
     return data;
   }
