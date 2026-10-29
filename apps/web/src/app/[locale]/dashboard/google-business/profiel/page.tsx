@@ -16,12 +16,14 @@ import {
   googleBusinessLocations,
   googleBusinessReplyReview,
   googleBusinessReviews,
+  googleBusinessStatus,
   googleBusinessUpdateDescription,
   googleBusinessUpdateHours,
   googleBusinessUpdateSpecialDays,
   googleBusinessUploadMedia,
   reviewsSuggestReplyForText,
   type GoogleBusinessLocation,
+  type GoogleBusinessStatus,
   type GoogleDayHours,
   type GooglePlaceDetails,
   type GoogleProfileMine,
@@ -162,6 +164,10 @@ export default function GoogleProfilePreviewPage() {
   );
 
   const [mine, setMine] = useState<GoogleProfileMine | null>(null);
+  // OAuth-koppeling (business.manage). Dit is wat bepaalt of we via de Google-
+  // API kunnen lezen en schrijven; los van `mine`, dat alleen de openbare
+  // Places-gegevens (google_place_id) voor de preview-weergave levert.
+  const [oauth, setOauth] = useState<GoogleBusinessStatus | null>(null);
   const [restaurant, setRestaurant] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -226,11 +232,16 @@ export default function GoogleProfilePreviewPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([fetchGoogleProfileMine(), fetchRestaurant()])
-      .then(([mineRes, restRes]) => {
+    Promise.allSettled([
+      fetchGoogleProfileMine(),
+      fetchRestaurant(),
+      googleBusinessStatus(),
+    ])
+      .then(([mineRes, restRes, oauthRes]) => {
         if (cancelled) return;
         if (mineRes.status === "fulfilled") setMine(mineRes.value);
         if (restRes.status === "fulfilled") setRestaurant(restRes.value);
+        if (oauthRes.status === "fulfilled") setOauth(oauthRes.value);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -240,11 +251,18 @@ export default function GoogleProfilePreviewPage() {
     };
   }, []);
 
+  // Bewerken/lezen via de Google-API kan alleen met een werkende OAuth-
+  // koppeling. Eerder hing dit aan de Places-koppeling (`mine.connected`):
+  // een zaak mét OAuth maar zónder google_place_id kreeg dan nooit de
+  // editor en las nooit de profielgegevens, terwijl reviews wel werkten.
+  const connected = !!oauth?.connected && !oauth.needsReconnect;
+  const needsReconnect = !!oauth?.connected && !!oauth.needsReconnect;
+
   // Locaties + huidige omschrijving ophalen zodra de koppeling verbonden is.
   // Losse effect (niet in de eerste fetch) omdat het van de connected-status
   // afhangt en een andere (schrijfbare) API raakt.
   useEffect(() => {
-    if (!mine?.connected) return;
+    if (!connected) return;
     let cancelled = false;
     googleBusinessLocations()
       .then((res) => {
@@ -263,7 +281,7 @@ export default function GoogleProfilePreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [mine?.connected, t]);
+  }, [connected, t]);
 
   // Schrijft de bewerkte omschrijving terug naar Google (locations.patch).
   const handleSaveDescription = async () => {
@@ -452,7 +470,6 @@ export default function GoogleProfilePreviewPage() {
   };
 
   const p: GooglePlaceDetails | null = mine?.data ?? null;
-  const connected = mine?.connected ?? false;
   // De geselecteerde, via de Google-API gelezen locatie (null tot geladen).
   const loc =
     connected && locations && locations[locIndex] ? locations[locIndex] : null;
@@ -495,6 +512,11 @@ export default function GoogleProfilePreviewPage() {
           color: "var(--text, #18181B)",
         }}
       >
+        {needsReconnect && (
+          <div style={{ color: "var(--red, #B42318)", marginBottom: 6 }}>
+            {t("banner.needsReconnect")}
+          </div>
+        )}
         <strong>
           {connected ? t("banner.titleConnected") : t("banner.titlePreview")}
         </strong>{" "}

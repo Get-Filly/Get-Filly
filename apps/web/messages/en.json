@@ -1829,6 +1829,7 @@
       "afterConnect": "Available after connecting"
     },
     "banner": {
+      "needsReconnect": "Access to your Google account was revoked or has expired. Disconnect Google Business Profile under Account → Connections and connect again.",
       "titleConnected": "Connected with Google Maps data.",
       "titlePreview": "Preview based on public Google data.",
       "body": "The details below come from your public Google profile. Editing and pushing directly to Google, plus posts, Q&A and insights, become active once the Google Business Profile connection is live. You manage the connection via <link>Account → Integrations</link>."
