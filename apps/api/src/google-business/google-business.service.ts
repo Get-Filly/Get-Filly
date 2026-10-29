@@ -87,7 +87,11 @@ type GbpTimePeriod = {
 };
 
 function gbpTimeToStr(t?: GbpTime): string {
-  const h = t?.hours ?? 0;
+  // Google geeft "sluit om middernacht" als 24:00 terug. Dat is geen geldige
+  // 'HH:MM' voor de tijd-velden in de UI (die tonen dan leeg), dus mappen we
+  // het naar 00:00. buildRegularHours leest sluit <= open als "tot de
+  // volgende dag", dus terugschrijven blijft kloppen.
+  const h = (t?.hours ?? 0) % 24;
   const m = t?.minutes ?? 0;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
@@ -125,23 +129,30 @@ function nextWeekday(day: WeekdayCode): WeekdayCode {
   return WEEKDAYS[(i + 1) % 7];
 }
 
-// Google → UI. Pakt bewust de EERSTE periode per dag; split-tijden
-// (lunch + diner apart) worden in de simpele editor als één blok getoond.
+// Google → UI. De simpele editor kent één blok per dag. Zijn er meerdere
+// periodes (lunch + diner apart), dan tonen we de eerste opening t/m de
+// laatste sluiting van die dag, zodat de dag de échte open-uren dekt (eerder
+// pakte dit alleen de eerste periode, bv. alleen de lunch).
 function normalizeRegularHours(periods?: GbpTimePeriod[]): DayHours[] {
-  const byDay = new Map<string, GbpTimePeriod>();
+  const byDay = new Map<string, GbpTimePeriod[]>();
   for (const p of periods ?? []) {
-    if (p.openDay && !byDay.has(p.openDay)) byDay.set(p.openDay, p);
+    if (!p.openDay) continue;
+    byDay.set(p.openDay, [...(byDay.get(p.openDay) ?? []), p]);
   }
+  const mins = (t?: GbpTime) => (t?.hours ?? 0) * 60 + (t?.minutes ?? 0);
   return WEEKDAYS.map((day) => {
-    const p = byDay.get(day);
-    return p
-      ? {
-          day,
-          open: true,
-          openTime: gbpTimeToStr(p.openTime),
-          closeTime: gbpTimeToStr(p.closeTime),
-        }
-      : { day, open: false, openTime: '09:00', closeTime: '17:00' };
+    const list = (byDay.get(day) ?? []).sort(
+      (a, b) => mins(a.openTime) - mins(b.openTime),
+    );
+    if (list.length === 0) {
+      return { day, open: false, openTime: '09:00', closeTime: '17:00' };
+    }
+    return {
+      day,
+      open: true,
+      openTime: gbpTimeToStr(list[0].openTime),
+      closeTime: gbpTimeToStr(list[list.length - 1].closeTime),
+    };
   });
 }
 

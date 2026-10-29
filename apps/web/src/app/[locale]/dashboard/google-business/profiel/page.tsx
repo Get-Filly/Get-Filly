@@ -311,6 +311,58 @@ export default function GoogleProfilePreviewPage() {
     }
   };
 
+  // Get-Filly-tijden (/account) in het Google-formaat, of null als ze niet
+  // compleet/geldig zijn (dan bieden we de knop niet aan).
+  const businessHoursAsGoogle = (): GoogleDayHours[] | null => {
+    const oh = restaurant?.opening_hours;
+    if (!oh) return null;
+    const keys: Array<[string, GoogleDayHours["day"]]> = [
+      ["mon", "MONDAY"],
+      ["tue", "TUESDAY"],
+      ["wed", "WEDNESDAY"],
+      ["thu", "THURSDAY"],
+      ["fri", "FRIDAY"],
+      ["sat", "SATURDAY"],
+      ["sun", "SUNDAY"],
+    ];
+    const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const out: GoogleDayHours[] = [];
+    for (const [k, day] of keys) {
+      const dv = oh[k];
+      if (dv === undefined) return null;
+      if (dv === null) {
+        out.push({ day, open: false, openTime: "09:00", closeTime: "17:00" });
+      } else if (hhmm.test(dv.open) && hhmm.test(dv.close)) {
+        out.push({ day, open: true, openTime: dv.open, closeTime: dv.close });
+      } else {
+        return null;
+      }
+    }
+    return out;
+  };
+
+  // Verschillen de tijden op Google van die in Get-Filly? Dan tonen we een
+  // melding met een knop om die van Get-Filly over te nemen (opslaan zet ze
+  // daarna op Google).
+  const hoursDifferFromBusiness = (() => {
+    const bh = businessHoursAsGoogle();
+    if (!bh || hoursDraft.length === 0) return false;
+    return bh.some((b, i) => {
+      const g = hoursDraft[i];
+      if (!g) return true;
+      if (b.open !== g.open) return true;
+      return b.open && (b.openTime !== g.openTime || b.closeTime !== g.closeTime);
+    });
+  })();
+
+  const useBusinessHours = () => {
+    const bh = businessHoursAsGoogle();
+    if (!bh) return;
+    setHoursDraft(bh);
+    setHoursStatus("idle");
+    setHoursMessage(null);
+  };
+
   // Eén weekdag in de openingstijden-editor bijwerken.
   const updateDay = (i: number, patch: Partial<GoogleDayHours>) => {
     setHoursDraft((prev) =>
@@ -605,6 +657,39 @@ export default function GoogleProfilePreviewPage() {
                   >
                     {t("hours.editableHint")}
                   </div>
+                  {hoursDifferFromBusiness && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        fontSize: 13,
+                        padding: "8px 10px",
+                        marginBottom: 10,
+                        background: "var(--bg-warm, #FAF7F1)",
+                        border: "1px solid var(--border, #E5DFD0)",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <span>{t("hours.differs")}</span>
+                      <button
+                        type="button"
+                        onClick={useBusinessHours}
+                        style={{
+                          padding: "5px 10px",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          border: "1px solid var(--border, #E5DFD0)",
+                          background: "transparent",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t("hours.useBusiness")}
+                      </button>
+                    </div>
+                  )}
                   {hoursDraft.map((d, i) => (
                     <div
                       key={d.day}
