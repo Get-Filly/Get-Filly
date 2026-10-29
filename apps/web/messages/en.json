@@ -1843,6 +1843,8 @@
       "address": "Address"
     },
     "hours": {
+      "differs": "These hours on Google differ from the opening hours in Get-Filly.",
+      "useBusiness": "Use Get-Filly hours",
       "title": "Opening hours",
       "empty": "No opening hours available from Google yet.",
       "editableHint": "Edit your opening hours and put them straight on Google.",

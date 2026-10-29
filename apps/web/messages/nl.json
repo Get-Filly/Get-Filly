@@ -1843,6 +1843,8 @@
       "address": "Adres"
     },
     "hours": {
+      "differs": "Deze tijden op Google wijken af van de openingstijden in Get-Filly.",
+      "useBusiness": "Neem tijden uit Get-Filly over",
       "title": "Openingstijden",
       "empty": "Nog geen openingstijden bekend uit Google.",
       "editableHint": "Pas je openingstijden aan en zet ze rechtstreeks op Google.",
