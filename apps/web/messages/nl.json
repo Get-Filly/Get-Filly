@@ -1829,6 +1829,7 @@
       "afterConnect": "Beschikbaar na koppeling"
     },
     "banner": {
+      "needsReconnect": "De toegang tot je Google-account is ingetrokken of verlopen. Ontkoppel Google Bedrijfsprofiel onder Account → Koppelingen en verbind opnieuw.",
       "titleConnected": "Gekoppeld met Google Maps-data.",
       "titlePreview": "Voorvertoning op basis van openbare Google-data.",
       "body": "De gegevens hieronder komen uit je openbare Google-profiel. Bewerken en rechtstreeks pushen naar Google, plus posts, Q&A en inzichten, worden actief zodra de Google Business Profile-koppeling live is. De koppeling beheer je via <link>Account → Koppelingen</link>."
